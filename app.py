@@ -1,56 +1,124 @@
-from flask import Flask, jsonify, request
-from flask_jwt_extended import (
-    JWTManager, create_access_token, jwt_required, get_jwt_identity
-)
+from flask import Flask, jsonify, request,send_file
+from dotenv import load_dotenv
 from flask_cors import CORS
+from flask_bcrypt import Bcrypt
+from flask_jwt_extended import(
+    JWTManager,create_access_token,jwt_required,get_jwt_identity
+)
+from datetime import timedelta
+from random_processing.random_generator import generate_random_augmentation
+from batch_processing.image_rotator import rotateandzip 
+import io
+import os
 from pymongo import MongoClient
-import bcrypt
+
+load_dotenv()
+print("Loaded MONGOURI:", os.getenv("MONGOURI"))
 
 app = Flask(__name__)
-CORS(app)  # allow frontend (localhost:3000) to call API
+CORS(app,origins=["http://localhost:5173"],supports_credentials=True)
+bcrypt = Bcrypt(app)
 
-app.config["JWT_SECRET_KEY"] = "super-secret-key"  # use env var in prod
-jwt = JWTManager(app)
+app.config['JWT_SECRET_KEY']= os.getenv("JWT_SECRET_KEY","your_super_secret_key")
+app.config['JWT_ACCESS_TOKEN_EXPIRES']= timedelta(days=1)
+jwt=JWTManager(app)
 
-# MongoDB connection (local or Atlas)
-client = MongoClient("mongodb://localhost:27017/")
-db = client["auth_demo"]
-users = db["users"]
+MONGO_URI = os.getenv("MONGOURI")
+if not MONGO_URI:
+    raise ValueError("MONGOURI environment variable not set")
 
-# ---------- Register ----------
+try:
+    client = MongoClient(MONGO_URI,serverSelectionTimeoutMS=5000)
+    db = client["users"]
+    users_collection = db["users"]
+    # Test connection
+    client.admin.command('ping')
+    print("MongoDB connected successfully")
+except Exception as e:
+    print(f"MongoDB connection failed: {e}")
+
+
+
 @app.route("/register", methods=["POST"])
 def register():
-    data = request.json
-    email = data.get("email")
-    password = data.get("password")
+    data= request.get_json()
+    email=data.get("email")
+    password=data.get("password")
 
-    if users.find_one({"email": email}):
-        return jsonify({"msg": "User already exists"}), 400
+    if not email or not password:
+        return jsonify({"error":"Email and password are required"}),400
 
-    hashed_pw = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
-    users.insert_one({"email": email, "password": hashed_pw})
-    return jsonify({"msg": "User registered successfully"}), 201
+    hashed_pw= bcrypt.generate_password_hash(password).decode('utf-8')
+    users_collection.insert_one({
+        "email":email,
+        "password":hashed_pw
+    })
 
-# ---------- Login ----------
-@app.route("/login", methods=["POST"])
+    return jsonify({"message":"User registered successfully"}),201
+
+
+@app.route("/login",methods=["POST"])
 def login():
-    data = request.json
-    email = data.get("email")
-    password = data.get("password")
+    data=request.get_json()
+    email=data.get("email")
+    password=data.get("password")
 
-    user = users.find_one({"email": email})
-    if not user or not bcrypt.checkpw(password.encode("utf-8"), user["password"]):
-        return jsonify({"msg": "Invalid credentials"}), 401
+    if not email or not password:
+        return jsonify({"error":"Email and password are required"}),400
+    
+    user = users_collection.find_one({"email":email})
+    if not user:
+        return jsonify({"error":"Invalid email or password"}),401
+    
+    if not bcrypt.check_password_hash(user['password'],password):
+        return jsonify({"error":"Invalid email or password"}),401
 
-    token = create_access_token(identity=email)
-    return jsonify(access_token=token), 200
+    access_token = create_access_token(identity= email)
+    return jsonify({"access_token":access_token}),200
 
-# ---------- Protected ----------
-@app.route("/profile", methods=["GET"])
-@jwt_required()
-def profile():
-    current_user = get_jwt_identity()
-    return jsonify({"logged_in_as": current_user}), 200
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@app.route("/augment/random", methods=["POST"])
+def random_augmentation():
+    if "image" not in request.files:
+        return jsonify({"error": "no image uploaded"})
+        
+    image_file = request.files['image']
+
+    try:
+        img_buffer = generate_random_augmentation(image_file)
+        
+        return send_file(
+            img_buffer,
+            mimetype='image/png',  
+            as_attachment=True,
+            download_name='random_augmented_image.png'
+        )
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}),500
+
+
+@app.route("/augment/rotate", methods=["POST"])
+def rotate_image():
+    if "image" not in request.files:
+        return jsonify({"error":"no image uploaded"})
+        
+    image_file= request.files['image']
+    num_images = int(request.form.get('num_images',36))
+
+    try:
+        zip_buffer=rotateandzip(image_file,num_images)
+        return send_file(
+            zip_buffer,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name='augmented_rotated_images.zip'
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}),500
+    
+
+
+
+if __name__ == '__main__':
+    app.run(debug=True,port=5000)
