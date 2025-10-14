@@ -1,7 +1,7 @@
 from PIL import Image
 import io
 
-def rotate_image(image, angle):
+def basic_rotate(image, angle):
 
     rotated = image.rotate(angle, expand=True)
     return rotated

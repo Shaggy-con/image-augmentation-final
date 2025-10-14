@@ -5,14 +5,14 @@ const LandingPage = () => {
     <div className="flex flex-col items-center justify-center min-h-screen text-center">
       <h1 className="text-2xl font-bold mb-8">
         SOFTWARE ENGINEERING (IT303) <br />
-        COURSE PROJECT TITLE: “WRITE THE TITLE OF YOUR COURSE PROJECT IN CAPITAL LETTERS”
+        COURSE PROJECT TITLE: "IMPLEMENTATION OF RGB IMAGE DATASET AUGMENTATION TECHNIQUES" <br />
       </h1>
 
       <div className="mb-10">
         <p className="text-lg">Carried out by</p>
-        <p className="text-lg font-medium">Student-1 Name (Roll Number)</p>
-        <p className="text-lg font-medium">Student-2 Name (Roll Number)</p>
-        <p className="text-lg font-medium">Student-3 Name (Roll Number)</p>
+        <p className="text-lg font-medium">Prathamesh (231IT051)</p>
+        <p className="text-lg font-medium">Ullas R (231IT082)</p>
+        <p className="text-lg font-medium">Swaroop R Rao (231IT078)</p>
       </div>
 
       <button

@@ -1,15 +1,20 @@
+Steps to run the project
 
--> To get filePath 
-enter pwd command in terminal to get current root folder of the file
-give number of images to be generated 
+Download the source folder
 
-curl -X POST http://127.0.0.1:5000/augment/rotate  \ 
--F "image=@/home/filePath/filename.png" \
--F "num_images=60"   
---output /home/user/filepathToBeStored/output.zip
+To run backend
+1. cd Image-augmentation
+2. create virtual environment 
+    python -m venv venv
+3. Run (pip install -r requirements.txt)
+3. python app.py
+
+To run frontend 
+
+1. cd augment_frontned 
+2. Run (npm i)
+3. npm run dev
 
 
 
-curl -X POST http://127.0.0.1:5000/augment/random \
-  -F "image=@/home/filePath/filename.png" \
-  --output /home/user/filepathToBeStored/random_augmented_image.png
+Ensure .env files is available

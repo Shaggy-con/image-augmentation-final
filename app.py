@@ -12,7 +12,9 @@ import io
 import os
 from pymongo import MongoClient
 from PIL import Image
-from basic_augmentation.basic_aug import rotate_image, scale_image, flip_image
+from basic_augmentation.basic_aug import basic_rotate, scale_image, flip_image
+import tempfile
+from advanced_augmentation.adv_augmentation import augment_image
 
 load_dotenv()
 print("Loaded MONGOURI:", os.getenv("MONGOURI"))
@@ -102,9 +104,9 @@ def random_augmentation():
 
 
 @app.route("/augment/rotate", methods=["POST"])
-def rotate_image():
+def rotate_batch_image():
     if "image" not in request.files:
-        return jsonify({"error":"no image uploaded"})
+        return jsonify({"error":"no image uploaded"}) ,400
         
     image_file= request.files['image']
     num_images = int(request.form.get('num_images',36))
@@ -122,24 +124,6 @@ def rotate_image():
     
 
 
-@app.route("/augment/rotate", methods=["POST"])
-def rotate_image_route():
-    if "image" not in request.files:
-        return jsonify({"error": "no image uploaded"}), 400
-        
-    image_file = request.files['image']
-    num_images = int(request.form.get('num_images', 36))
-
-    try:
-        zip_buffer = rotateandzip(image_file, num_images)
-        return send_file(
-            zip_buffer,
-            mimetype='application/zip',
-            as_attachment=True,
-            download_name='augmented_rotated_images.zip'
-        )
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/augment/basic", methods=["POST"])
@@ -160,7 +144,7 @@ def basic_augmentation():
         
         if operation == 'rotate':
             angle = float(request.form.get('angle', 90))
-            augmented_image = rotate_image(image, angle)
+            augmented_image = basic_rotate(image, angle)
             
         elif operation == 'scale':
             scale_factor = float(request.form.get('scale_factor', 1.5))
@@ -189,6 +173,31 @@ def basic_augmentation():
         return jsonify({"error": str(ve)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
+@app.route('/augment/advanced', methods=['POST'])
+def augment():
+    image_file = request.files['image']
+    params = request.form
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_in:
+        image_file.save(temp_in)
+        input_path = temp_in.name
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_out:
+        output_path = temp_out.name
+
+    augment_image(
+        image_path=input_path,
+        output_path=output_path,
+        brightness=float(params.get('brightness', 1.0)),
+        contrast=float(params.get('contrast', 1.0)),
+        blur=params.get('blur') == 'on',
+        grayscale=params.get('grayscale') == 'on'
+    )
+
+    os.remove(input_path)
+    return send_file(output_path, mimetype='image/png')
 
 
 if __name__ == '__main__':
