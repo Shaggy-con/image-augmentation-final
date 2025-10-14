@@ -25,7 +25,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!token) {
-      window.location.href = "/";
+      window.location.href = "/auth";
     }
   }, [token]);
 

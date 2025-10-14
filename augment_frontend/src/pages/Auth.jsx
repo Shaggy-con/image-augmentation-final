@@ -73,7 +73,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-xl border border-gray-100">
+    <div className="max-w-md mx-auto mt-20 p-6 bg-white rounded-lg shadow-xl border border-gray-100 ">
       <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
         {isRegister ? "Create Account" : "Welcome Back"}
       </h2>
