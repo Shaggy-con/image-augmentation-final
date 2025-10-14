@@ -11,6 +11,8 @@ from batch_processing.image_rotator import rotateandzip
 import io
 import os
 from pymongo import MongoClient
+from PIL import Image
+from basic_augmentation.basic_aug import rotate_image, scale_image, flip_image
 
 load_dotenv()
 print("Loaded MONGOURI:", os.getenv("MONGOURI"))
@@ -18,6 +20,7 @@ print("Loaded MONGOURI:", os.getenv("MONGOURI"))
 app = Flask(__name__)
 CORS(app,origins=["http://localhost:5173"],supports_credentials=True)
 bcrypt = Bcrypt(app)
+
 
 app.config['JWT_SECRET_KEY']= os.getenv("JWT_SECRET_KEY","your_super_secret_key")
 app.config['JWT_ACCESS_TOKEN_EXPIRES']= timedelta(days=1)
@@ -118,6 +121,74 @@ def rotate_image():
         return jsonify({"error": str(e)}),500
     
 
+
+@app.route("/augment/rotate", methods=["POST"])
+def rotate_image_route():
+    if "image" not in request.files:
+        return jsonify({"error": "no image uploaded"}), 400
+        
+    image_file = request.files['image']
+    num_images = int(request.form.get('num_images', 36))
+
+    try:
+        zip_buffer = rotateandzip(image_file, num_images)
+        return send_file(
+            zip_buffer,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name='augmented_rotated_images.zip'
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/augment/basic", methods=["POST"])
+def basic_augmentation():
+    if "image" not in request.files:
+        return jsonify({"error": "no image uploaded"}), 400
+        
+    image_file = request.files['image']
+    
+    operation = request.form.get('operation')  
+    
+    if not operation:
+        return jsonify({"error": "operation parameter is required"}), 400
+
+    try:
+
+        image = Image.open(image_file)
+        
+        if operation == 'rotate':
+            angle = float(request.form.get('angle', 90))
+            augmented_image = rotate_image(image, angle)
+            
+        elif operation == 'scale':
+            scale_factor = float(request.form.get('scale_factor', 1.5))
+            augmented_image = scale_image(image, scale_factor)
+            
+        elif operation == 'flip':
+            direction = request.form.get('direction', 'horizontal')
+            augmented_image = flip_image(image, direction)
+            
+        else:
+            return jsonify({"error": "Invalid operation. Use 'rotate', 'scale', or 'flip'"}), 400
+        
+        # Save the augmented image to a buffer
+        img_buffer = io.BytesIO()
+        augmented_image.save(img_buffer, format='PNG')
+        img_buffer.seek(0)
+        
+        return send_file(
+            img_buffer,
+            mimetype='image/png',
+            as_attachment=True,
+            download_name=f'basic_augmented_{operation}.png'
+        )
+        
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':

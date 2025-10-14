@@ -2,8 +2,7 @@ import React from 'react';
 
 const LandingPage = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 text-center">
-      {/* Title */}
+    <div className="flex flex-col items-center justify-center min-h-screen text-center">
       <h1 className="text-2xl font-bold mb-8">
         SOFTWARE ENGINEERING (IT303) <br />
         COURSE PROJECT TITLE: “WRITE THE TITLE OF YOUR COURSE PROJECT IN CAPITAL LETTERS”
