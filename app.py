@@ -3,12 +3,12 @@ from dotenv import load_dotenv
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import(
-    JWTManager,create_access_token,jwt_required,get_jwt_identity
+    JWTManager,create_access_token,jwt_required
 )
 import logging
 from datetime import timedelta
-from random_processing.random_generator import generate_random_augmentation
-from batch_processing.image_rotator import rotateandzip 
+from random_processing.random_generator import _generate_random_augmentation
+from batch_processing.image_rotator import _rotate_and_zip 
 import io
 import os
 from pymongo import MongoClient
@@ -51,12 +51,36 @@ except Exception as e:
 
 # Helpers
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+MAX_FILE_SIZE = 15 * 1024 * 1024
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
 
 def error_response(message, status_code=400):
     return jsonify({"error": message}), status_code
+
+def validate_image_size(image_file):
+    """
+    Checks if the given size of file is correct or not
+    """
+    # 1. Seek to end to get file size
+    image_file.seek(0, io.SEEK_END)
+    file_size = image_file.tell()
+    # 2. Reset the stream position to start
+    image_file.seek(0)
+
+    # Checks if file size is 0
+    if file_size == 0:
+        return False, "Uploaded image is empty"
+    
+    # Checks file size
+    if file_size > MAX_FILE_SIZE:
+        return False, " Uploaded file is too large"
+    
+    # No error found 
+    return True, None
+
+
 
 
 @app.route("/register", methods=["POST"])
@@ -104,13 +128,28 @@ def login():
 @app.route("/augment/random", methods=["POST"])
 @jwt_required()
 def random_augmentation():
+    """
+    Receives an image file via POST request
+    Applies random augmentations and returns to frontend
+    """
+    # 1. File validation
     if "image" not in request.files:
-        return jsonify({"error": "no image uploaded"})
+        return jsonify({"error": "no image uploaded"}), 400
         
     image_file = request.files['image']
+    
+    # 2. Empty File validation
+    if not image_file or image_file.filename == "":
+        return jsonify({"Error":"No image file is uploaded"}), 400
+    
+    # 3. Size validation
+    is_Valid, error_msg = validate_image_size(image_file)
+    
+    if not is_Valid:
+        return jsonify({"error": error_msg}), 400
 
     try:
-        img_buffer = generate_random_augmentation(image_file)
+        img_buffer = _generate_random_augmentation(image_file)
         
         return send_file(
             img_buffer,
@@ -120,19 +159,50 @@ def random_augmentation():
         )
         
     except Exception as e:
-        return jsonify({"error": str(e)}),500
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/augment/rotate", methods=["POST"])
 @jwt_required()
 def rotate_batch_image():
+    """
+    Receives an image file and num_images via POST request
+    Applies Batch Processing logic and returns batches of images to frontend
+    """
+    # 1. File validation
     if "image" not in request.files:
-        return jsonify({"error":"no image uploaded"}) ,400
+        return jsonify({"error":"no image uploaded"}) , 400
         
     image_file= request.files['image']
-    num_images = int(request.form.get('num_images',36))
+    
+    # 2. File size validation
+    is_valid, error_msg = validate_image_size(image_file)
+    
+    if not is_valid:
+        return jsonify({"error": error_msg}), 400
+
+    # 3. Parameter validation
+    num_images_str = request.form.get('num_images',36)
+
+    if num_images_str is None:
+        num_images = 36
+    else:
+        try:
+            num_images = int(num_images_str)
+        except ValueError:
+            return jsonify({"error":"num_images must be an integer"}),400
+        
+    # 4. Limits Validation
+    MIN_IMAGES = 4
+    MAX_IMAGES = 360
+
+    if not (MIN_IMAGES <= num_images <= MAX_IMAGES):
+        return jsonify({"error":f"num_images must be between {MIN_IMAGES} and {MAX_IMAGES}"}),400
+    
+    # 5. Batch Processing and Error handling 
 
     try:
-        zip_buffer=rotateandzip(image_file,num_images)
+        zip_buffer=_rotate_and_zip(image_file, num_images)
+
         return send_file(
             zip_buffer,
             mimetype='application/zip',
@@ -140,7 +210,7 @@ def rotate_batch_image():
             download_name='augmented_rotated_images.zip'
         )
     except Exception as e:
-        return jsonify({"error": str(e)}),500
+        return jsonify({"error": str(e)}), 500
     
 
 

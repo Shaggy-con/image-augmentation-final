@@ -2,7 +2,7 @@ import io
 import zipfile
 from PIL import Image
 
-def rotateandzip(image_file,num_images=36):
+def _rotate_and_zip(image_file,num_images=36):
     image = Image.open(image_file).convert('RGB')
 
     zip_buffer= io.BytesIO()
@@ -11,9 +11,11 @@ def rotateandzip(image_file,num_images=36):
         for i in range(num_images):
             angle = step*i
             rotated = image.rotate(angle, expand=True)
+
             img_bytes = io.BytesIO()
             rotated.save(img_bytes,format='JPEG')
             img_bytes.seek(0)
+            
             zipf.writestr(f"rotated_{int(angle)}.jpg",img_bytes.read())
 
     zip_buffer.seek(0)
