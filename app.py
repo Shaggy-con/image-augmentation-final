@@ -5,6 +5,7 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import(
     JWTManager,create_access_token,jwt_required,get_jwt_identity
 )
+import logging
 from datetime import timedelta
 from random_processing.random_generator import generate_random_augmentation
 from batch_processing.image_rotator import rotateandzip 
@@ -17,16 +18,22 @@ import tempfile
 from advanced_augmentation.adv_augmentation import augment_image
 
 load_dotenv()
-print("Loaded MONGOURI:", os.getenv("MONGOURI"))
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app,origins=["http://localhost:5173"],supports_credentials=True)
 bcrypt = Bcrypt(app)
 
-
-app.config['JWT_SECRET_KEY']= os.getenv("JWT_SECRET_KEY","your_super_secret_key")
+# JWT Configuration
+app.config['JWT_SECRET_KEY']= os.getenv("JWT_SECRET_KEY")
+if not app.config['JWT_SECRET_KEY']:
+    raise ValueError("JWT_SECRET_KEY environment variable not set")
 app.config['JWT_ACCESS_TOKEN_EXPIRES']= timedelta(days=1)
 jwt=JWTManager(app)
+
+app.config['MAX_CONTENT_LENGTH']=5 * 1024 * 1024  # 5 MB limit
 
 MONGO_URI = os.getenv("MONGOURI")
 if not MONGO_URI:
@@ -42,6 +49,14 @@ try:
 except Exception as e:
     print(f"MongoDB connection failed: {e}")
 
+# Helpers
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
+
+def error_response(message, status_code=400):
+    return jsonify({"error": message}), status_code
 
 
 @app.route("/register", methods=["POST"])
@@ -52,6 +67,9 @@ def register():
 
     if not email or not password:
         return jsonify({"error":"Email and password are required"}),400
+    
+    if users_collection.find_one({"email":email}):
+        return jsonify({"error":"User already exists"}),400
 
     hashed_pw= bcrypt.generate_password_hash(password).decode('utf-8')
     users_collection.insert_one({
@@ -60,6 +78,7 @@ def register():
     })
 
     return jsonify({"message":"User registered successfully"}),201
+
 
 
 @app.route("/login",methods=["POST"])
@@ -83,6 +102,7 @@ def login():
 
 
 @app.route("/augment/random", methods=["POST"])
+@jwt_required()
 def random_augmentation():
     if "image" not in request.files:
         return jsonify({"error": "no image uploaded"})
@@ -102,8 +122,8 @@ def random_augmentation():
     except Exception as e:
         return jsonify({"error": str(e)}),500
 
-
 @app.route("/augment/rotate", methods=["POST"])
+@jwt_required()
 def rotate_batch_image():
     if "image" not in request.files:
         return jsonify({"error":"no image uploaded"}) ,400
@@ -125,39 +145,112 @@ def rotate_batch_image():
 
 
 
-
 @app.route("/augment/basic", methods=["POST"])
+@jwt_required()
 def basic_augmentation():
     if "image" not in request.files:
-        return jsonify({"error": "no image uploaded"}), 400
-        
+        return error_response("No image uploaded", 400)
+    
     image_file = request.files['image']
+    if not allowed_file(image_file.filename):
+        return error_response("Invalid file type. Use PNG/JPG/JPEG", 400)
     
-    operation = request.form.get('operation')  
-    
-    if not operation:
-        return jsonify({"error": "operation parameter is required"}), 400
-
     try:
-
         image = Image.open(image_file)
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
         
-        if operation == 'rotate':
-            angle = float(request.form.get('angle', 90))
-            augmented_image = basic_rotate(image, angle)
-            
-        elif operation == 'scale':
-            scale_factor = float(request.form.get('scale_factor', 1.5))
-            augmented_image = scale_image(image, scale_factor)
-            
-        elif operation == 'flip':
-            direction = request.form.get('direction', 'horizontal')
-            augmented_image = flip_image(image, direction)
-            
+        # Multi-operation support via JSON (extension); fallback to single form-data
+        operations = []
+        json_data = request.get_json()
+        if json_data and 'operations' in json_data:
+            operations = json_data['operations']
+            if not isinstance(operations, list) or not operations:
+                return error_response("Operations must be a non-empty list", 400)
         else:
-            return jsonify({"error": "Invalid operation. Use 'rotate', 'scale', or 'flip'"}), 400
+            single_op = request.form.get('operation')
+            if not single_op:
+                return error_response("Operation parameter is required (or 'operations' list in JSON)", 400)
+            if single_op == 'rotate':
+                angle = float(request.form.get('angle', 90))
+                operations = [{'type': 'rotate', 'angle': angle}]
+            elif single_op == 'scale':
+                scale_factor = float(request.form.get('scale_factor', 1.5))
+                operations = [{'type': 'scale', 'scale_factor': scale_factor}]
+            elif single_op == 'flip':
+                direction = request.form.get('direction', 'horizontal')
+                operations = [{'type': 'flip', 'direction': direction}]
+            else:
+                return error_response("Invalid operation. Use 'rotate', 'scale', or 'flip'", 400)
         
-        # Save the augmented image to a buffer
+        # Apply operations sequentially
+        op_names = []
+        for op in operations:
+            op_type = op.get('type')
+            if op_type == 'rotate':
+                angle = float(op.get('angle', 0))
+                if not 0 <= angle <= 360:
+                    return error_response("Angle must be between 0 and 360 degrees", 400)
+                image = basic_rotate(image, angle)
+                op_names.append('rotate')
+            elif op_type == 'scale':
+                scale_factor = float(op.get('scale_factor', 1.0))
+                if not 0.1 <= scale_factor <= 2.0:
+                    return error_response("Scale factor must be between 0.1 and 2.0", 400)
+                image = scale_image(image, scale_factor)
+                op_names.append('scale')
+            elif op_type == 'flip':
+                direction = op.get('direction', 'horizontal')
+                if direction not in ['horizontal', 'vertical']:
+                    return error_response("Direction must be 'horizontal' or 'vertical'", 400)
+                image = flip_image(image, direction)
+                op_names.append('flip')
+            else:
+                return error_response(f"Invalid operation type: {op_type}", 400)
+        
+        filename_suffix = '_'.join(op_names) if op_names else 'basic'
+        img_buffer = io.BytesIO()
+        image.save(img_buffer, format='PNG')
+        img_buffer.seek(0)
+        
+        return send_file(
+            img_buffer,
+            mimetype='image/png',
+            as_attachment=True,
+            download_name=f'basic_augmented_{filename_suffix}.png'
+        )
+    except ValueError as ve:
+        return error_response(str(ve), 400)
+    except Exception as e:
+        logger.error(f"Basic augmentation error: {e}")
+        return error_response(str(e), 500)
+    
+@app.route('/augment/advanced', methods=['POST'])
+@jwt_required()
+def advanced_augmentation():
+    if "image" not in request.files:
+        return error_response("No image uploaded", 400)
+    
+    image_file = request.files['image']
+    if not allowed_file(image_file.filename):
+        return error_response("Invalid file type. Use PNG/JPG/JPEG", 400)
+    
+    params = request.form
+    
+    try:
+        image = Image.open(image_file)
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        augmented_image = augment_image(
+            image=image,
+            brightness=float(params.get('brightness', 1.0)),
+            contrast=float(params.get('contrast', 1.0)),
+            saturation=float(params.get('saturation', 1.0)),
+            blur=params.get('blur') == 'on',
+            grayscale=params.get('grayscale') == 'on'
+        )
+        
         img_buffer = io.BytesIO()
         augmented_image.save(img_buffer, format='PNG')
         img_buffer.seek(0)
@@ -166,38 +259,13 @@ def basic_augmentation():
             img_buffer,
             mimetype='image/png',
             as_attachment=True,
-            download_name=f'basic_augmented_{operation}.png'
+            download_name='advanced_augmented_image.png'
         )
-        
     except ValueError as ve:
-        return jsonify({"error": str(ve)}), 400
+        return error_response(str(ve), 400)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
-
-@app.route('/augment/advanced', methods=['POST'])
-def augment():
-    image_file = request.files['image']
-    params = request.form
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_in:
-        image_file.save(temp_in)
-        input_path = temp_in.name
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_out:
-        output_path = temp_out.name
-
-    augment_image(
-        image_path=input_path,
-        output_path=output_path,
-        brightness=float(params.get('brightness', 1.0)),
-        contrast=float(params.get('contrast', 1.0)),
-        blur=params.get('blur') == 'on',
-        grayscale=params.get('grayscale') == 'on'
-    )
-
-    os.remove(input_path)
-    return send_file(output_path, mimetype='image/png')
+        logger.error(f"Advanced augmentation error: {e}")
+        return error_response(str(e), 500)
 
 
 if __name__ == '__main__':

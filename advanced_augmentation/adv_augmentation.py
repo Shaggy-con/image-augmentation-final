@@ -1,29 +1,42 @@
 from PIL import Image, ImageEnhance, ImageOps, ImageFilter
+import logging
+
+logger = logging.getLogger(__name__)
 
 def augment_image(
-    image_path: str,
-    output_path: str,
+    image: Image.Image,
     brightness: float = 1.0,
     contrast: float = 1.0,
+    saturation: float = 1.0,
     blur: bool = False,
     grayscale: bool = False
-):
+) -> Image.Image:
+    """Apply advanced augmentations to a PIL Image (in-memory). Returns transformed Image."""
+    if not 0.1 <= brightness <= 3.0:
+        raise ValueError("Brightness must be between 0.1 and 3.0")
+    if not 0.1 <= contrast <= 3.0:
+        raise ValueError("Contrast must be between 0.1 and 3.0")
+    if not 0.1 <= saturation <= 3.0:
+        raise ValueError("Saturation must be between 0.1 and 3.0")
+
     try:
-        with Image.open(image_path) as img:
-            img = img.convert("RGBA")
-            if brightness != 1.0:
-                enhancer = ImageEnhance.Brightness(img)
-                img = enhancer.enhance(brightness)
-            if contrast != 1.0:
-                enhancer = ImageEnhance.Contrast(img)
-                img = enhancer.enhance(contrast)
-            if blur:
-                img = img.filter(ImageFilter.BLUR)
-            if grayscale:
-                img = ImageOps.grayscale(img).convert("RGBA")
-            final_img = img.convert("RGB")
-            final_img.save(output_path)
-    except FileNotFoundError:
-        print(f"Error: The file '{image_path}' was not found.")
+        img = image.copy().convert('RGB')  # Enforce RGB early (SRS constraint)
+        
+        if brightness != 1.0:
+            enhancer = ImageEnhance.Brightness(img)
+            img = enhancer.enhance(brightness)
+        if contrast != 1.0:
+            enhancer = ImageEnhance.Contrast(img)
+            img = enhancer.enhance(contrast)
+        if saturation != 1.0:
+            enhancer = ImageEnhance.Color(img)
+            img = enhancer.enhance(saturation)
+        if blur:
+            img = img.filter(ImageFilter.BLUR)
+        if grayscale:
+            img = ImageOps.grayscale(img)
+        
+        return img
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logger.error(f"Advanced augmentation error: {e}")
+        raise
