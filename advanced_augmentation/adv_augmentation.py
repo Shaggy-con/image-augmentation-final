@@ -3,7 +3,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def augment_image(
+
+def _augment_image(
     image: Image.Image,
     brightness: float = 1.0,
     contrast: float = 1.0,
@@ -11,7 +12,23 @@ def augment_image(
     blur: bool = False,
     grayscale: bool = False
 ) -> Image.Image:
-    """Apply advanced augmentations to a PIL Image (in-memory). Returns transformed Image."""
+    """
+    Apply advanced augmentations to a PIL Image (in-memory).
+    
+    Args:
+        image: Source PIL Image
+        brightness: Brightness factor (0.1-3.0, default 1.0)
+        contrast: Contrast factor (0.1-3.0, default 1.0)
+        saturation: Saturation factor (0.1-3.0, default 1.0)
+        blur: Apply blur filter if True
+        grayscale: Convert to grayscale if True
+    
+    Returns:
+        Transformed PIL Image
+    
+    Raises:
+        ValueError: If brightness, contrast, or saturation out of range
+    """
     if not 0.1 <= brightness <= 3.0:
         raise ValueError("Brightness must be between 0.1 and 3.0")
     if not 0.1 <= contrast <= 3.0:
@@ -20,23 +37,29 @@ def augment_image(
         raise ValueError("Saturation must be between 0.1 and 3.0")
 
     try:
-        img = image.copy().convert('RGB')  # Enforce RGB early (SRS constraint)
-        
+        # Enforce RGB early (SRS constraint)
+        img = image.copy().convert('RGB')
+
         if brightness != 1.0:
             enhancer = ImageEnhance.Brightness(img)
             img = enhancer.enhance(brightness)
+
         if contrast != 1.0:
             enhancer = ImageEnhance.Contrast(img)
             img = enhancer.enhance(contrast)
+
         if saturation != 1.0:
             enhancer = ImageEnhance.Color(img)
             img = enhancer.enhance(saturation)
+
         if blur:
             img = img.filter(ImageFilter.BLUR)
+
         if grayscale:
             img = ImageOps.grayscale(img)
-        
+
         return img
+
     except Exception as e:
         logger.error(f"Advanced augmentation error: {e}")
         raise

@@ -15,7 +15,7 @@ from pymongo import MongoClient
 from PIL import Image
 from basic_augmentation.basic_aug import basic_rotate, scale_image, flip_image
 import tempfile
-from advanced_augmentation.adv_augmentation import augment_image
+from advanced_augmentation.adv_augmentation import _augment_image
 
 load_dotenv()
 
@@ -218,119 +218,249 @@ def rotate_batch_image():
 @app.route("/augment/basic", methods=["POST"])
 @jwt_required()
 def basic_augmentation():
+    """
+    Perform basic image augmentations such as rotate, scale, and flip.
+    """
     if "image" not in request.files:
         return error_response("No image uploaded", 400)
-    
-    image_file = request.files['image']
+
+    image_file = request.files["image"]
+
     if not allowed_file(image_file.filename):
         return error_response("Invalid file type. Use PNG/JPG/JPEG", 400)
-    
+
     try:
         image = Image.open(image_file)
-        if image.mode != 'RGB':
-            image = image.convert('RGB')
-        
-        # Multi-operation support via JSON (extension); fallback to single form-data
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
+        # Load operations list from JSON body or single form parameter
+        json_data = request.get_json(silent=True)
         operations = []
-        json_data = request.get_json()
-        if json_data and 'operations' in json_data:
-            operations = json_data['operations']
+
+        if json_data and "operations" in json_data:
+            operations = json_data["operations"]
             if not isinstance(operations, list) or not operations:
-                return error_response("Operations must be a non-empty list", 400)
+                return error_response(
+                    "Operations must be a non-empty list.", 400
+                )
         else:
-            single_op = request.form.get('operation')
+            single_op = request.form.get("operation")
             if not single_op:
-                return error_response("Operation parameter is required (or 'operations' list in JSON)", 400)
-            if single_op == 'rotate':
-                angle = float(request.form.get('angle', 90))
-                operations = [{'type': 'rotate', 'angle': angle}]
-            elif single_op == 'scale':
-                scale_factor = float(request.form.get('scale_factor', 1.5))
-                operations = [{'type': 'scale', 'scale_factor': scale_factor}]
-            elif single_op == 'flip':
-                direction = request.form.get('direction', 'horizontal')
-                operations = [{'type': 'flip', 'direction': direction}]
+                return error_response(
+                    "Operation parameter is required (or 'operations' list "
+                    "in JSON).", 400
+                )
+
+            # Handle each supported single operation type
+            if single_op == "rotate":
+                angle = float(request.form.get("angle", 90))
+                operations = [{"type": "rotate", "angle": angle}]
+            elif single_op == "scale":
+                scale_factor = float(request.form.get("scale_factor", 1.5))
+                operations = [{"type": "scale", "scale_factor": scale_factor}]
+            elif single_op == "flip":
+                direction = request.form.get("direction", "horizontal")
+                operations = [{"type": "flip", "direction": direction}]
             else:
-                return error_response("Invalid operation. Use 'rotate', 'scale', or 'flip'", 400)
-        
+                return error_response(
+                    "Invalid operation. Use 'rotate', 'scale', or 'flip'.", 400
+                )
+
         # Apply operations sequentially
         op_names = []
         for op in operations:
-            op_type = op.get('type')
-            if op_type == 'rotate':
-                angle = float(op.get('angle', 0))
+            op_type = op.get("type")
+
+            if op_type == "rotate":
+                angle = float(op.get("angle", 0))
                 if not 0 <= angle <= 360:
-                    return error_response("Angle must be between 0 and 360 degrees", 400)
+                    return error_response(
+                        "Angle must be between 0 and 360 degrees.", 400
+                    )
                 image = basic_rotate(image, angle)
-                op_names.append('rotate')
-            elif op_type == 'scale':
-                scale_factor = float(op.get('scale_factor', 1.0))
+                op_names.append("rotate")
+
+            elif op_type == "scale":
+                scale_factor = float(op.get("scale_factor", 1.0))
                 if not 0.1 <= scale_factor <= 2.0:
-                    return error_response("Scale factor must be between 0.1 and 2.0", 400)
+                    return error_response(
+                        "Scale factor must be between 0.1 and 2.0.", 400
+                    )
                 image = scale_image(image, scale_factor)
-                op_names.append('scale')
-            elif op_type == 'flip':
-                direction = op.get('direction', 'horizontal')
-                if direction not in ['horizontal', 'vertical']:
-                    return error_response("Direction must be 'horizontal' or 'vertical'", 400)
+                op_names.append("scale")
+
+            elif op_type == "flip":
+                direction = op.get("direction", "horizontal")
+                if direction not in ["horizontal", "vertical"]:
+                    return error_response(
+                        "Direction must be 'horizontal' or 'vertical'.", 400
+                    )
                 image = flip_image(image, direction)
-                op_names.append('flip')
+                op_names.append("flip")
+
             else:
-                return error_response(f"Invalid operation type: {op_type}", 400)
-        
-        filename_suffix = '_'.join(op_names) if op_names else 'basic'
+                return error_response(f"Invalid operation type: {op_type}.", 400)
+
+        # Prepare image for response
+        filename_suffix = "_".join(op_names) if op_names else "basic"
         img_buffer = io.BytesIO()
-        image.save(img_buffer, format='PNG')
+        image.save(img_buffer, format="PNG")
         img_buffer.seek(0)
-        
+
         return send_file(
             img_buffer,
-            mimetype='image/png',
+            mimetype="image/png",
             as_attachment=True,
-            download_name=f'basic_augmented_{filename_suffix}.png'
+            download_name=f"basic_augmented_{filename_suffix}.png",
         )
-    except ValueError as ve:
-        return error_response(str(ve), 400)
-    except Exception as e:
-        logger.error(f"Basic augmentation error: {e}")
-        return error_response(str(e), 500)
+
+    except ValueError as val_err:
+        return error_response(str(val_err), 400)
+
+    # pylint: disable=broad-exception-caught
+    except Exception as exc:
+        logger.error("Basic augmentation error: %s", exc)
+        return error_response("Unexpected server error.", 500)
+    # pylint: enable=broad-exception-caught
     
-@app.route('/augment/advanced', methods=['POST'])
+@app.route("/augment/advanced", methods=["POST"])
 @jwt_required()
 def advanced_augmentation():
+    """Handle advanced image augmentation with multiple operations."""
     if "image" not in request.files:
         return error_response("No image uploaded", 400)
-    
-    image_file = request.files['image']
+
+    image_file = request.files["image"]
     if not allowed_file(image_file.filename):
         return error_response("Invalid file type. Use PNG/JPG/JPEG", 400)
-    
-    params = request.form
-    
+
     try:
         image = Image.open(image_file)
-        if image.mode != 'RGB':
-            image = image.convert('RGB')
-        
-        augmented_image = augment_image(
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
+        # Default advanced parameters
+        advanced_params = {
+            "brightness": 1.0,
+            "contrast": 1.0,
+            "saturation": 1.0,
+            "blur": False,
+            "grayscale": False,
+        }
+
+        # Parse JSON operations
+        json_data = request.get_json()
+        if json_data and "operations" in json_data:
+            operations = json_data["operations"]
+            if not isinstance(operations, list) or not operations:
+                return error_response(
+                    "Operations must be a non-empty list",
+                    400
+                )
+
+            for op in operations:
+                op_type = op.get("type")
+
+                if op_type == "brightness":
+                    value = float(op.get("value", 1.0))
+                    if not 0.1 <= value <= 3.0:
+                        return error_response(
+                            "Brightness must be between 0.1 and 3.0",
+                            400
+                        )
+                    advanced_params["brightness"] = value
+
+                elif op_type == "contrast":
+                    value = float(op.get("value", 1.0))
+                    if not 0.1 <= value <= 3.0:
+                        return error_response(
+                            "Contrast must be between 0.1 and 3.0",
+                            400
+                        )
+                    advanced_params["contrast"] = value
+
+                elif op_type == "saturation":
+                    value = float(op.get("value", 1.0))
+                    if not 0.1 <= value <= 3.0:
+                        return error_response(
+                            "Saturation must be between 0.1 and 3.0",
+                            400
+                        )
+                    advanced_params["saturation"] = value
+
+                elif op_type == "blur":
+                    advanced_params["blur"] = bool(op.get("enabled", True))
+
+                elif op_type == "grayscale":
+                    advanced_params["grayscale"] = bool(
+                        op.get("enabled", True)
+                    )
+
+                else:
+                    return error_response(
+                        f"Invalid advanced operation type: {op_type}. "
+                        "Use 'brightness', 'contrast', 'saturation', "
+                        "'blur', or 'grayscale'",
+                        400,
+                    )
+
+        else:
+            # Backward compatibility: single params from form-data
+            advanced_params["brightness"] = float(
+                request.form.get("brightness", 1.0)
+            )
+            if not 0.1 <= advanced_params["brightness"] <= 3.0:
+                return error_response(
+                    "Brightness must be between 0.1 and 3.0",
+                    400
+                )
+
+            advanced_params["contrast"] = float(
+                request.form.get("contrast", 1.0)
+            )
+            if not 0.1 <= advanced_params["contrast"] <= 3.0:
+                return error_response(
+                    "Contrast must be between 0.1 and 3.0",
+                    400
+                )
+
+            advanced_params["saturation"] = float(
+                request.form.get("saturation", 1.0)
+            )
+            if not 0.1 <= advanced_params["saturation"] <= 3.0:
+                return error_response(
+                    "Saturation must be between 0.1 and 3.0",
+                    400
+                )
+
+            advanced_params["blur"] = request.form.get("blur") == "on"
+            advanced_params["grayscale"] = (
+                request.form.get("grayscale") == "on"
+            )
+
+        # Apply augmentations
+        augmented_image = _augment_image(
             image=image,
-            brightness=float(params.get('brightness', 1.0)),
-            contrast=float(params.get('contrast', 1.0)),
-            saturation=float(params.get('saturation', 1.0)),
-            blur=params.get('blur') == 'on',
-            grayscale=params.get('grayscale') == 'on'
+            brightness=advanced_params["brightness"],
+            contrast=advanced_params["contrast"],
+            saturation=advanced_params["saturation"],
+            blur=advanced_params["blur"],
+            grayscale=advanced_params["grayscale"],
         )
-        
+
+        # Prepare image for sending
         img_buffer = io.BytesIO()
-        augmented_image.save(img_buffer, format='PNG')
+        augmented_image.save(img_buffer, format="PNG")
         img_buffer.seek(0)
-        
+
         return send_file(
             img_buffer,
-            mimetype='image/png',
+            mimetype="image/png",
             as_attachment=True,
-            download_name='advanced_augmented_image.png'
+            download_name="advanced_augmented_image.png",
         )
+
     except ValueError as ve:
         return error_response(str(ve), 400)
     except Exception as e:
@@ -339,4 +469,4 @@ def advanced_augmentation():
 
 
 if __name__ == '__main__':
-    app.run(debug=True,port=5000)
+    app.run(debug=True,port=5001)
