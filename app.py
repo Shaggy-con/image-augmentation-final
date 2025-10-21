@@ -335,6 +335,11 @@ def advanced_augmentation():
     if not allowed_file(image_file.filename):
         return error_response("Invalid file type. Use PNG/JPG/JPEG", 400)
 
+    # Add size validation (consistent with other endpoints)
+    is_valid, error_msg = validate_image_size(image_file)
+    if not is_valid:
+        return error_response(error_msg, 400)
+
     try:
         image = Image.open(image_file)
         if image.mode != "RGB":
@@ -349,8 +354,8 @@ def advanced_augmentation():
             "grayscale": False,
         }
 
-        # Parse JSON operations
-        json_data = request.get_json()
+        # Parse JSON operations (with silent=True to avoid 400 on non-JSON requests)
+        json_data = request.get_json(silent=True)
         if json_data and "operations" in json_data:
             operations = json_data["operations"]
             if not isinstance(operations, list) or not operations:
