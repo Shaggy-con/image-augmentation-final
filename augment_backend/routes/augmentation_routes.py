@@ -1,131 +1,18 @@
-from flask import Flask, jsonify, request,send_file
-from dotenv import load_dotenv
-from flask_cors import CORS
-from flask_bcrypt import Bcrypt
-from flask_jwt_extended import(
-    JWTManager,create_access_token,jwt_required
-)
-import logging
-from datetime import timedelta
-from random_processing.random_generator import _generate_random_augmentation
-from batch_processing.image_rotator import _rotate_and_zip 
+from flask import Blueprint, jsonify, request, send_file
+from flask_jwt_extended import jwt_required
+from utils import allowed_file, error_response, validate_image_size
+from controllers.random_generator import _generate_random_augmentation
+from controllers.image_rotator import _rotate_and_zip
+from controllers.basic_aug import basic_rotate, scale_image, flip_image
+from controllers.adv_augmentation import _augment_image
 import io
-import os
-from pymongo import MongoClient
 from PIL import Image
-from basic_augmentation.basic_aug import basic_rotate, scale_image, flip_image
-import tempfile
-from advanced_augmentation.adv_augmentation import _augment_image
+import logging
 
-load_dotenv()
-
-logging.basicConfig(level=logging.INFO)
+augmentation_bp = Blueprint('augmentation', __name__)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
-CORS(app,origins=["http://localhost:5173"],supports_credentials=True)
-bcrypt = Bcrypt(app)
-
-# JWT Configuration
-app.config['JWT_SECRET_KEY']= os.getenv("JWT_SECRET_KEY")
-if not app.config['JWT_SECRET_KEY']:
-    raise ValueError("JWT_SECRET_KEY environment variable not set")
-app.config['JWT_ACCESS_TOKEN_EXPIRES']= timedelta(days=1)
-jwt=JWTManager(app)
-
-app.config['MAX_CONTENT_LENGTH']=5 * 1024 * 1024  # 5 MB limit
-
-MONGO_URI = os.getenv("MONGOURI")
-if not MONGO_URI:
-    raise ValueError("MONGOURI environment variable not set")
-
-try:
-    client = MongoClient(MONGO_URI,serverSelectionTimeoutMS=5000)
-    db = client["users"]
-    users_collection = db["users"]
-    # Test connection
-    client.admin.command('ping')
-    print("MongoDB connected successfully")
-except Exception as e:
-    print(f"MongoDB connection failed: {e}")
-
-# Helpers
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-MAX_FILE_SIZE = 15 * 1024 * 1024
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
-
-def error_response(message, status_code=400):
-    return jsonify({"error": message}), status_code
-
-def validate_image_size(image_file):
-    """
-    Checks if the given size of file is correct or not
-    """
-    # 1. Seek to end to get file size
-    image_file.seek(0, io.SEEK_END)
-    file_size = image_file.tell()
-    # 2. Reset the stream position to start
-    image_file.seek(0)
-
-    # Checks if file size is 0
-    if file_size == 0:
-        return False, "Uploaded image is empty"
-    
-    # Checks file size
-    if file_size > MAX_FILE_SIZE:
-        return False, " Uploaded file is too large"
-    
-    # No error found 
-    return True, None
-
-
-
-
-@app.route("/register", methods=["POST"])
-def register():
-    data= request.get_json()
-    email=data.get("email")
-    password=data.get("password")
-
-    if not email or not password:
-        return jsonify({"error":"Email and password are required"}),400
-    
-    if users_collection.find_one({"email":email}):
-        return jsonify({"error":"User already exists"}),400
-
-    hashed_pw= bcrypt.generate_password_hash(password).decode('utf-8')
-    users_collection.insert_one({
-        "email":email,
-        "password":hashed_pw
-    })
-
-    return jsonify({"message":"User registered successfully"}),201
-
-
-
-@app.route("/login",methods=["POST"])
-def login():
-    data=request.get_json()
-    email=data.get("email")
-    password=data.get("password")
-
-    if not email or not password:
-        return jsonify({"error":"Email and password are required"}),400
-    
-    user = users_collection.find_one({"email":email})
-    if not user:
-        return jsonify({"error":"Invalid email or password"}),401
-    
-    if not bcrypt.check_password_hash(user['password'],password):
-        return jsonify({"error":"Invalid email or password"}),401
-
-    access_token = create_access_token(identity= email)
-    return jsonify({"access_token":access_token}),200
-
-
-@app.route("/augment/random", methods=["POST"])
+@augmentation_bp.route("/augment/random", methods=["POST"])
 @jwt_required()
 def random_augmentation():
     """
@@ -161,7 +48,7 @@ def random_augmentation():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/augment/rotate", methods=["POST"])
+@augmentation_bp.route("/augment/rotate", methods=["POST"])
 @jwt_required()
 def rotate_batch_image():
     """
@@ -211,11 +98,8 @@ def rotate_batch_image():
         )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
 
-
-
-@app.route("/augment/basic", methods=["POST"])
+@augmentation_bp.route("/augment/basic", methods=["POST"])
 @jwt_required()
 def basic_augmentation():
     """
@@ -324,7 +208,7 @@ def basic_augmentation():
         return error_response("Unexpected server error.", 500)
     # pylint: enable=broad-exception-caught
     
-@app.route("/augment/advanced", methods=["POST"])
+@augmentation_bp.route("/augment/advanced", methods=["POST"])
 @jwt_required()
 def advanced_augmentation():
     """Handle advanced image augmentation with multiple operations."""
@@ -471,7 +355,3 @@ def advanced_augmentation():
     except Exception as e:
         logger.error(f"Advanced augmentation error: {e}")
         return error_response(str(e), 500)
-
-
-if __name__ == '__main__':
-    app.run(debug=True,port=5001)
