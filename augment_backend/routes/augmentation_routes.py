@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, send_file
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from utils import allowed_file, error_response, validate_image_size
 from controllers.random_generator import _generate_random_augmentation
 from controllers.image_rotator import _rotate_and_zip
@@ -8,9 +8,13 @@ from controllers.adv_augmentation import _augment_image
 import io
 from PIL import Image
 import logging
+from database import get_log_collection
+import datetime
 
 augmentation_bp = Blueprint('augmentation', __name__)
 logger = logging.getLogger(__name__)
+
+
 
 @augmentation_bp.route("/augment/random", methods=["POST"])
 @jwt_required()
@@ -34,10 +38,24 @@ def random_augmentation():
     
     if not is_Valid:
         return jsonify({"error": error_msg}), 400
+    
+    user_email = get_jwt_identity()
+    logs = get_log_collection()
+
+    
+
+    logging.info(f"RANDOM_AUGMENTATION by user={user_email}, file={image_file.filename}")
 
     try:
         img_buffer = _generate_random_augmentation(image_file)
         
+        logs.insert_one({
+            "user_email": user_email,
+            "action": "RANDOM_AUGMENTATION",
+            "filename": image_file.filename,
+            "timestamp": datetime.datetime.utcnow()
+        })
+
         return send_file(
             img_buffer,
             mimetype='image/png',  
@@ -85,10 +103,20 @@ def rotate_batch_image():
     if not (MIN_IMAGES <= num_images <= MAX_IMAGES):
         return jsonify({"error":f"num_images must be between {MIN_IMAGES} and {MAX_IMAGES}"}),400
     
+    user_email = get_jwt_identity()
+    logs = get_log_collection()
+    
     # 5. Batch Processing and Error handling 
 
     try:
         zip_buffer=_rotate_and_zip(image_file, num_images)
+
+        logs.insert_one({
+            "user_email": user_email,
+            "action": "ROTATE_BATCH_IMAGE",
+            "filename": image_file.filename,
+            "timestamp": datetime.datetime.utcnow()
+        })
 
         return send_file(
             zip_buffer,
@@ -98,6 +126,8 @@ def rotate_batch_image():
         )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+    
 
 @augmentation_bp.route("/augment/basic", methods=["POST"])
 @jwt_required()
@@ -191,6 +221,16 @@ def basic_augmentation():
         img_buffer = io.BytesIO()
         image.save(img_buffer, format="PNG")
         img_buffer.seek(0)
+
+        user_email = get_jwt_identity()
+        logs = get_log_collection()
+
+        logs.insert_one({
+            "user_email": user_email,
+            "action": f"{filename_suffix}_BASIC_AUGMENTATION",
+            "filename": image_file.filename,
+            "timestamp": datetime.datetime.utcnow()
+        })
 
         return send_file(
             img_buffer,
@@ -342,6 +382,16 @@ def advanced_augmentation():
         img_buffer = io.BytesIO()
         augmented_image.save(img_buffer, format="PNG")
         img_buffer.seek(0)
+
+        user_email = get_jwt_identity()
+        logs = get_log_collection()
+
+        logs.insert_one({
+            "user_email": user_email,
+            "action": "ADVANCE_AUGMENTATION",
+            "filename": image_file.filename,
+            "timestamp": datetime.datetime.utcnow()
+        })
 
         return send_file(
             img_buffer,
