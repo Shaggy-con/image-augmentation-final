@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 const LandingPage = () => {
   const navigate = useNavigate();
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen text-center">
+    <div className="flex flex-col items-center justify-center min-h-screen text-center bg-amber-50">
       <h1 className="text-2xl font-bold mb-8">
         SOFTWARE ENGINEERING (IT303) <br />
         COURSE PROJECT TITLE: "IMPLEMENTATION OF RGB IMAGE DATASET AUGMENTATION TECHNIQUES" <br />

@@ -20,7 +20,6 @@ export default function BasicAdvancedAugmentation() {
   const handleBasicAugmentation = async () => {
     if (!basicImage) return alert("Please select an image");
 
-    // Validate file type
     const allowedExtensions = ['png', 'jpg', 'jpeg'];
     const extension = basicImage.name.split('.').pop().toLowerCase();
     if (!allowedExtensions.includes(extension)) {
@@ -28,7 +27,6 @@ export default function BasicAdvancedAugmentation() {
       return;
     }
 
-    // Validate file size (15MB)
     if (basicImage.size > 15 * 1024 * 1024) {
       alert("File is too large. Maximum size is 15MB.");
       return;
@@ -81,7 +79,7 @@ export default function BasicAdvancedAugmentation() {
       }
       formData.append("brightness", brightness);
       formData.append("contrast", contrast);
-      formData.append("saturation", saturation); // Added
+      formData.append("saturation", saturation);
       formData.append("blur", blur ? "on" : "off");
       formData.append("grayscale", grayscale ? "on" : "off");
     }
@@ -98,10 +96,8 @@ export default function BasicAdvancedAugmentation() {
       const url = URL.createObjectURL(res.data);
       setBasicResultUrl(url);
 
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${augType}_augmented_image.png`;
-      a.click();
+      localStorage.setItem("lastAugmentedImage", url);
+      
     } catch (err) {
       alert(err.response?.data?.error || "Something went wrong");
     } finally {
@@ -109,178 +105,238 @@ export default function BasicAdvancedAugmentation() {
     }
   };
 
+  const handleDownload = () => {
+    const a = document.createElement("a");
+    a.href = basicResultUrl;
+    a.download = "augmented_image.png";
+    a.click();
+  };
+
   return (
-    <div>
-      <h3 className="text-xl font-semibold mb-4">Basic / Advanced Augmentation</h3>
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(e) => {
-          setBasicImage(e.target.files[0]);
-          setBasicResultUrl(null);
-        }}
-        className="mb-4 block"
-      />
-      <div className="mb-4">
-        <label className="mr-4">
-          <input
-            type="radio"
-            value="basic"
-            checked={augType === "basic"}
-            onChange={(e) => setAugType(e.target.value)}
-          />{" "}
-          Basic
-        </label>
-        <label>
-          <input
-            type="radio"
-            value="advanced"
-            checked={augType === "advanced"}
-            onChange={(e) => setAugType(e.target.value)}
-          />{" "}
-          Advanced
-        </label>
-      </div>
-      {augType === "basic" && (
-        <div className="mb-4 space-y-2">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Operation</label>
-            <select
-              value={operation}
-              onChange={(e) => setOperation(e.target.value)}
-              className="border px-2 py-1 rounded w-full"
+    <div className="max-w-3xl mx-auto">
+      <div className="bg-white shadow rounded-lg border overflow-hidden">
+        <div className="bg-gray-50 p-4 border-b">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setAugType("basic")}
+              className={`flex-1 py-2 px-4 rounded font-medium transition-colors ${
+                augType === "basic"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
             >
-              <option value="rotate">Rotate</option>
-              <option value="scale">Scale</option>
-              <option value="flip">Flip</option>
-            </select>
+              Basic
+            </button>
+            <button
+              onClick={() => setAugType("advanced")}
+              className={`flex-1 py-2 px-4 rounded font-medium transition-colors ${
+                augType === "advanced"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              Advanced
+            </button>
           </div>
-          {operation === "rotate" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Rotation Angle (0–360)</label>
-              <input
-                type="number"
-                min="0"
-                max="360"
-                value={angle}
-                onChange={(e) => setAngle(Number(e.target.value))}
-                className="border px-2 py-1 rounded w-full"
-              />
-            </div>
-          )}
-          {operation === "scale" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Scale Factor (0.1–2.0)</label>
-              <input
-                type="number"
-                step="0.1"
-                min="0.1"
-                max="2.0"
-                value={scaleFactor}
-                onChange={(e) => setScaleFactor(Number(e.target.value))}
-                className="border px-2 py-1 rounded w-full"
-              />
-            </div>
-          )}
-          {operation === "flip" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Flip Direction</label>
+        </div>
+
+        <div className="p-6">
+          <div className="mb-6">
+            <label className="block font-medium text-gray-700 mb-2">
+              Upload Image
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                setBasicImage(e.target.files[0]);
+                setBasicResultUrl(null);
+              }}
+              className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer border border-gray-300 rounded p-2"
+            />
+            {basicImage && (
+              <p className="mt-2 text-sm text-gray-600">
+                Selected: {basicImage.name}
+              </p>
+            )}
+          </div>
+
+          {augType === "basic" && (
+            <div className="space-y-4">
               <div>
-                <label className="mr-4">
+                <label className="block font-medium text-gray-700 mb-2">Operation</label>
+                <select
+                  value={operation}
+                  onChange={(e) => setOperation(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="rotate">Rotate</option>
+                  <option value="scale">Scale</option>
+                  <option value="flip">Flip</option>
+                </select>
+              </div>
+
+              {operation === "rotate" && (
+                <div>
+                  <label className="block font-medium text-gray-700 mb-2">Angle (0-360°)</label>
                   <input
-                    type="radio"
-                    value="horizontal"
-                    checked={flipDirection === "horizontal"}
-                    onChange={(e) => setFlipDirection(e.target.value)}
-                  />{" "}
-                  Horizontal
+                    type="number"
+                    min="0"
+                    max="360"
+                    value={angle}
+                    onChange={(e) => setAngle(Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+
+              {operation === "scale" && (
+                <div>
+                  <label className="block font-medium text-gray-700 mb-2">Scale Factor (0.1-2.0)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    max="2.0"
+                    value={scaleFactor}
+                    onChange={(e) => setScaleFactor(Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+
+              {operation === "flip" && (
+                <div>
+                  <label className="block font-medium text-gray-700 mb-2">Direction</label>
+                  <div className="flex gap-3">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        value="horizontal"
+                        checked={flipDirection === "horizontal"}
+                        onChange={(e) => setFlipDirection(e.target.value)}
+                        className="text-blue-600"
+                      />
+                      <span>Horizontal</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        value="vertical"
+                        checked={flipDirection === "vertical"}
+                        onChange={(e) => setFlipDirection(e.target.value)}
+                        className="text-blue-600"
+                      />
+                      <span>Vertical</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {augType === "advanced" && (
+            <div className="space-y-4">
+              <div>
+                <label className="block font-medium text-gray-700 mb-2">Brightness (0.1-3.0)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  max="3.0"
+                  value={brightness}
+                  onChange={(e) => setBrightness(Number(e.target.value))}
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-gray-700 mb-2">Contrast (0.1-3.0)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  max="3.0"
+                  value={contrast}
+                  onChange={(e) => setContrast(Number(e.target.value))}
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-gray-700 mb-2">Saturation (0.1-3.0)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  max="3.0"
+                  value={saturation}
+                  onChange={(e) => setSaturation(Number(e.target.value))}
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={blur}
+                    onChange={(e) => setBlur(e.target.checked)}
+                    className="rounded text-blue-600"
+                  />
+                  <span>Apply Blur</span>
                 </label>
-                <label>
+
+                <label className="flex items-center gap-2">
                   <input
-                    type="radio"
-                    value="vertical"
-                    checked={flipDirection === "vertical"}
-                    onChange={(e) => setFlipDirection(e.target.value)}
-                  />{" "}
-                  Vertical
+                    type="checkbox"
+                    checked={grayscale}
+                    onChange={(e) => setGrayscale(e.target.checked)}
+                    className="rounded text-blue-600"
+                  />
+                  <span>Grayscale</span>
                 </label>
               </div>
             </div>
           )}
+
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={handleBasicAugmentation}
+              disabled={isLoadingBasic}
+              className="flex-1 py-3 font-medium rounded text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoadingBasic ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                "Generate"
+              )}
+            </button>
+
+            {basicResultUrl && (
+              <button
+                onClick={handleDownload}
+                className="flex-1 py-3 font-medium rounded text-white bg-green-600 hover:bg-green-700"
+              >
+                Download
+              </button>
+            )}
+          </div>
+
+          
         </div>
-      )}
-      {augType === "advanced" && (
-        <div className="mb-4 space-y-2">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Brightness (0.1–3.0)</label>
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              max="3.0"
-              value={brightness}
-              onChange={(e) => setBrightness(Number(e.target.value))}
-              className="border px-2 py-1 rounded w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Contrast (0.1–3.0)</label>
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              max="3.0"
-              value={contrast}
-              onChange={(e) => setContrast(Number(e.target.value))}
-              className="border px-2 py-1 rounded w-full"
-            />
-          </div>
-          <div> {/* Added saturation input */}
-            <label className="block text-sm font-medium text-gray-700">Saturation (0.1–3.0)</label>
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              max="3.0"
-              value={saturation}
-              onChange={(e) => setSaturation(Number(e.target.value))}
-              className="border px-2 py-1 rounded w-full"
-            />
-          </div>
-          <div>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={blur}
-                onChange={(e) => setBlur(e.target.checked)}
-              />
-              <span className="ml-2">Apply Blur</span>
-            </label>
-          </div>
-          <div>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={grayscale}
-                onChange={(e) => setGrayscale(e.target.checked)}
-              />
-              <span className="ml-2">Apply Grayscale</span>
-            </label>
-          </div>
-        </div>
-      )}
-      <button
-        onClick={handleBasicAugmentation}
-        disabled={isLoadingBasic}
-        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isLoadingBasic ? "Processing..." : "Generate"}
-      </button>
-      <button>
-        This is button
-      </button>
+      </div>
+
       {basicResultUrl && (
-        <Output basicResultUrl={basicResultUrl} />
+        <div className="mt-6">
+          <Output imageurl={basicResultUrl} />
+        </div>
       )}
     </div>
   );

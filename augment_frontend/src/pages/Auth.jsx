@@ -138,140 +138,196 @@ export default function Auth() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-6 bg-white rounded-lg shadow-xl border border-gray-100">
-      <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-        {isRegister ? "Create Account" : "Welcome Back"}
-      </h2>
-      
-      <div className="space-y-4">
-        {error && (
-          <div className="text-red-600 text-sm font-semibold bg-red-50 p-2 rounded-md border border-red-200">
-            {error}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-12 px-4 flex items-center justify-center">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden backdrop-blur-sm">
+        {/* Header with gradient */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-center">
+          <div className="w-16 h-16 bg-white rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
+            <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
           </div>
-        )}
-
-        {successMessage && (
-          <div className="text-green-600 text-sm font-semibold bg-green-50 p-2 rounded-md border border-green-200">
-            {successMessage}
-          </div>
-        )}
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Email
-          </label>
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={`w-full px-4 py-2 border ${
-              error && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-                ? "border-red-400"
-                : "border-gray-300"
-            } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
-          />
+          <h2 className="text-3xl font-bold text-white mb-2">
+            {isRegister ? "Create Account" : "Welcome Back"}
+          </h2>
+          <p className="text-blue-100 text-sm">
+            {isRegister ? "Sign up to get started" : "Sign in to continue"}
+          </p>
         </div>
-        
-        {step === 'credentials' && (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (e.target.value) {
-                    setPasswordStrength(validatePassword(e.target.value));
-                  } else {
-                    setPasswordStrength(null);
-                  }
-                }}
-                className={`w-full px-4 py-2 border ${
-                  error && !validatePassword(password).valid && password.length > 0
-                    ? "border-red-400"
-                    : "border-gray-300"
-                } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
-              />
-              {passwordStrength && password.length > 0 && (
-                <p className={`mt-2 text-sm font-semibold ${
-                  passwordStrength.valid ? "text-green-600" : "text-red-600"
-                }`}>
-                  {passwordStrength.message}
-                </p>
-              )}
-            </div>
-          </>
-        )}
 
-        {step === 'otp' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Enter OTP (sent to {email})
-            </label>
-            <input
-              type="text"
-              placeholder="Enter 6-digit OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              maxLength={6}
-              className={`w-full px-4 py-2 border ${
-                error && otp.length !== 6 ? "border-red-400" : "border-gray-300"
-              } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-center text-lg tracking-widest`}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Didn't receive OTP?{" "}
-              <button
-                onClick={handleResendOTP}
+        <div className="p-8">
+          <div className="space-y-5">
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg animate-fadeIn">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-red-700 text-sm font-medium">{error}</p>
+                </div>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg animate-fadeIn">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-green-700 text-sm font-medium">{successMessage}</p>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                Email Address
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                  </svg>
+                </div>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${
+                    error && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+                      ? "border-red-400 focus:ring-red-100"
+                      : "border-gray-200 focus:ring-blue-100 focus:border-blue-500"
+                  } rounded-xl focus:ring-4 focus:outline-none transition-all duration-200 text-gray-700`}
+                />
+              </div>
+            </div>
+            
+            {step === 'credentials' && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (e.target.value) {
+                          setPasswordStrength(validatePassword(e.target.value));
+                        } else {
+                          setPasswordStrength(null);
+                        }
+                      }}
+                      className={`w-full pl-12 pr-4 py-3.5 border-2 ${
+                        error && !validatePassword(password).valid && password.length > 0
+                          ? "border-red-400 focus:ring-red-100"
+                          : "border-gray-200 focus:ring-blue-100 focus:border-blue-500"
+                      } rounded-xl focus:ring-4 focus:outline-none transition-all duration-200 text-gray-700`}
+                    />
+                  </div>
+                  {passwordStrength && password.length > 0 && (
+                    <div className={`mt-3 p-3 rounded-lg ${
+                      passwordStrength.valid ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"
+                    }`}>
+                      <p className={`text-sm font-medium flex items-center gap-2 ${
+                        passwordStrength.valid ? "text-green-700" : "text-red-700"
+                      }`}>
+                        {passwordStrength.valid ? (
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                        {passwordStrength.message}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {step === 'otp' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                  Enter OTP
+                </label>
+                <p className="text-xs text-gray-500 mb-3">Sent to {email}</p>
+                <input
+                  type="text"
+                  placeholder="000000"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                  className={`w-full px-4 py-3.5 border-2 ${
+                    error && otp.length !== 6 ? "border-red-400 focus:ring-red-100" : "border-gray-200 focus:ring-blue-100 focus:border-blue-500"
+                  } rounded-xl focus:ring-4 focus:outline-none transition-all duration-200 text-center text-2xl tracking-widest font-bold text-gray-700`}
+                />
+                <div className="mt-3 text-center">
+                  <p className="text-sm text-gray-600">
+                    Didn't receive OTP?{" "}
+                    <button
+                      onClick={handleResendOTP}
+                      disabled={isLoading}
+                      className="text-blue-600 hover:text-blue-700 font-semibold disabled:opacity-50 transition-colors"
+                    >
+                      Resend OTP
+                    </button>
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            <button 
+              onClick={handleSubmit}
+              disabled={isLoading || (!email && !password && !otp)}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-4 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-200 focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none relative overflow-hidden group"
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-3">
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                step === 'otp' ? "Verify OTP" : (isRegister ? "Send OTP" : "Sign In")
+              )}
+              <div className="absolute inset-0 bg-gradient-to-r from-white to-transparent opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            </button>
+          </div>
+          
+          <div className="mt-8 text-center pt-6 border-t border-gray-200">
+            <p className="text-gray-600">
+              {isRegister 
+                ? (step === 'otp' 
+                    ? "Already have an account? " 
+                    : "Already have an account? "
+                  ) 
+                : "Don't have an account? "
+              }{" "}
+              <button 
+                onClick={handleSwitchMode}
                 disabled={isLoading}
-                className="text-blue-600 hover:underline font-medium disabled:opacity-50"
+                className="text-blue-600 hover:text-blue-700 font-bold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg px-2 py-1 disabled:opacity-50"
               >
-                Resend OTP
+                {isRegister ? "Sign In" : "Sign Up"}
               </button>
             </p>
           </div>
-        )}
-        
-        <button 
-          onClick={handleSubmit}
-          disabled={isLoading || (!email && !password && !otp)}
-          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? (
-            <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Processing...
-            </span>
-          ) : (
-            step === 'otp' ? "Verify OTP" : (isRegister ? "Send OTP" : "Sign In")
-          )}
-        </button>
-      </div>
-      
-      <div className="mt-6 text-center">
-        <p className="text-gray-600">
-          {isRegister 
-            ? (step === 'otp' 
-                ? "Already have an account? " 
-                : "Already have an account? "
-              ) 
-            : "Don't have an account? "
-          }{" "}
-          <button 
-            onClick={handleSwitchMode}
-            disabled={isLoading}
-            className="text-blue-600 hover:text-blue-800 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1 disabled:opacity-50"
-          >
-            {isRegister ? "Sign In" : "Sign Up"}
-          </button>
-        </p>
+        </div>
       </div>
     </div>
   );
