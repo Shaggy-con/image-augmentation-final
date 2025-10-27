@@ -1,21 +1,23 @@
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import {BrowserRouter as Router, Route, Routes} from "react-router-dom";
-import LandingPage from "./pages/LandingPage";
-import bg from "./assets/background.png";
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Auth from './pages/Auth';
+import Dashboard from './pages/Dashboard';
+import LandingPage from './pages/LandingPage';
+import bg from './assets/background.png';
+
+const backgroundStyle = {
+  backgroundImage: `url(${bg})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  backgroundAttachment: 'scroll',
+};
 
 function App() {
   return (
     <Router>
-      <div 
-        className="min-h-screen w-full" 
-        style={{ 
-          backgroundImage: `url(${bg})`, 
-          backgroundSize: 'cover', 
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'scroll'
-        }}
+      <div
+        className="min-h-screen w-full"
+        style={backgroundStyle}
       >
         <div className="relative h-full">
           <Routes>

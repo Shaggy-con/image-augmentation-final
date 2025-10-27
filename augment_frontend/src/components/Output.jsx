@@ -1,6 +1,6 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 
-const Output = ({ imageurl }) => {
+function Output({ imageurl }) {
   return (
     <div className="mt-4">
       <img
@@ -10,6 +10,10 @@ const Output = ({ imageurl }) => {
       />
     </div>
   );
+}
+
+Output.propTypes = {
+  imageurl: PropTypes.string.isRequired,
 };
 
 export default Output;

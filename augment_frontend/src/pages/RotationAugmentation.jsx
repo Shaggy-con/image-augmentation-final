@@ -1,39 +1,47 @@
-import { useState } from "react";
-import API from "../api";
+import { useState } from 'react';
+import API from '../api';
 
-export default function RotationAugmentation() {
+const MIN_IMAGES = 2;
+const MAX_IMAGES = 360;
+const DEFAULT_NUM_IMAGES = 36;
+
+function RotationAugmentation() {
   const [rotateImage, setRotateImage] = useState(null);
-  const [numImages, setNumImages] = useState(36);
+  const [numImages, setNumImages] = useState(DEFAULT_NUM_IMAGES);
   const [isLoadingRotate, setIsLoadingRotate] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   const handleRotateAugmentation = async () => {
-    if (!rotateImage) return alert("Please select an image");
-    if (numImages < 2 || numImages > 360) {
-      return alert("Please enter a number between 2 and 360");
+    if (!rotateImage) {
+      alert('Please select an image');
+      return;
+    }
+    if (numImages < MIN_IMAGES || numImages > MAX_IMAGES) {
+      alert(`Please enter a number between ${MIN_IMAGES} and ${MAX_IMAGES}`);
+      return;
     }
     setIsLoadingRotate(true);
 
     const formData = new FormData();
-    formData.append("image", rotateImage);
-    formData.append("num_images", numImages);
+    formData.append('image', rotateImage);
+    formData.append('num_images', numImages);
 
     try {
-      const res = await API.post("/augment/rotate", formData, {
+      const res = await API.post('/augment/rotate', formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          'Content-Type': 'multipart/form-data',
         },
-        responseType: "blob",
+        responseType: 'blob',
       });
 
       const url = URL.createObjectURL(res.data);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
-      a.download = "augmented_rotated_images.zip";
+      a.download = 'augmented_rotated_images.zip';
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      alert(err.response?.data?.error || "Something went wrong");
+      alert(err.response?.data?.error || 'Something went wrong');
     } finally {
       setIsLoadingRotate(false);
     }
@@ -75,16 +83,16 @@ export default function RotationAugmentation() {
             max={360}
             value={numImages}
             onChange={(e) => {
-              const value = parseInt(e.target.value);
-              if (value >= 2 && value <= 360) {
+              const value = parseInt(e.target.value, 10);
+              if (value >= MIN_IMAGES && value <= MAX_IMAGES) {
                 setNumImages(value);
-                setError("");
+                setError('');
               } else {
-                setError("Please enter a number between 2 and 360");
+                setError(`Please enter a number between ${MIN_IMAGES} and ${MAX_IMAGES}`);
               }
             }}
             className={`border rounded px-3 py-2 w-full ${
-              error ? "border-red-500" : "border-gray-300"
+              error ? 'border-red-500' : 'border-gray-300'
             }`}
           />
           
@@ -94,27 +102,18 @@ export default function RotationAugmentation() {
           
           {!error && (
             <p className="mt-2 text-sm text-gray-500">
-              Will generate {numImages} images with {Math.round(360 / numImages)}° intervals
+              Will generate {numImages} images with {Math.round(MAX_IMAGES / numImages)}° intervals
             </p>
           )}
         </div>
 
         <button
+          type="button"
           onClick={handleRotateAugmentation}
           disabled={isLoadingRotate}
           className="w-full py-3 font-medium rounded text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoadingRotate ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Processing...
-            </span>
-          ) : (
-            "Generate & Download"
-          )}
+          {isLoadingRotate ? 'Processing...' : 'Generate & Download'}
         </button>
 
         
@@ -122,3 +121,5 @@ export default function RotationAugmentation() {
     </div>
   );
 }
+
+export default RotationAugmentation;

@@ -1,24 +1,28 @@
-import { useState, useEffect } from "react";
-import BasicAdvancedAugmentation from "./BasicAdvancedAugmentation";
-import RotationAugmentation from "./RotationAugmentation";
-import RandomAugmentation from "./RandomAugmentation";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import BasicAdvancedAugmentation from './BasicAdvancedAugmentation';
+import RotationAugmentation from './RotationAugmentation';
+import RandomAugmentation from './RandomAugmentation';
 
-export default function Dashboard() {
+const TAB_BASIC_ADVANCED = 'basic-advanced';
+const TAB_ROTATION = 'rotation';
+const TAB_RANDOM = 'random';
+
+function Dashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("basic-advanced");
-  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [activeTab, setActiveTab] = useState(TAB_BASIC_ADVANCED);
+  const [token, setToken] = useState(localStorage.getItem('token'));
 
   useEffect(() => {
     if (!token) {
-      navigate("/auth");
+      navigate('/auth');
     }
-  }, [token]);
+  }, [token, navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem('token');
     setToken(null);
-    navigate("/auth");
+    navigate('/auth');
   };
 
   return (
@@ -33,6 +37,7 @@ export default function Dashboard() {
               </h2>
             </div>
             <button
+              type="button"
               onClick={handleLogout}
               className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
             >
@@ -47,44 +52,47 @@ export default function Dashboard() {
           <div className="bg-gradient-to-r from-gray-50 to-slate-50 px-6 pt-6">
             <div className="flex gap-2 border-b border-gray-200">
               <button
-                onClick={() => setActiveTab("basic-advanced")}
+                type="button"
+                onClick={() => setActiveTab(TAB_BASIC_ADVANCED)}
                 className={`relative px-6 py-3 font-medium rounded-t-xl transition-all duration-200 ${
-                  activeTab === "basic-advanced"
-                    ? "bg-white text-blue-600 shadow-sm -mb-px border-t-2 border-x border-blue-500"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-white/50"
+                  activeTab === TAB_BASIC_ADVANCED
+                    ? 'bg-white text-blue-600 shadow-sm -mb-px border-t-2 border-x border-blue-500'
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-white/50'
                 }`}
               >
                 <span className="relative z-10">Basic / Advanced</span>
-                {activeTab === "basic-advanced" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                {activeTab === TAB_BASIC_ADVANCED && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500" />
                 )}
               </button>
               
               <button
-                onClick={() => setActiveTab("rotation")}
+                type="button"
+                onClick={() => setActiveTab(TAB_ROTATION)}
                 className={`relative px-6 py-3 font-medium rounded-t-xl transition-all duration-200 ${
-                  activeTab === "rotation"
-                    ? "bg-white text-blue-600 shadow-sm -mb-px border-t-2 border-x border-blue-500"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-white/50"
+                  activeTab === TAB_ROTATION
+                    ? 'bg-white text-blue-600 shadow-sm -mb-px border-t-2 border-x border-blue-500'
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-white/50'
                 }`}
               >
                 <span className="relative z-10">Rotation</span>
-                {activeTab === "rotation" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                {activeTab === TAB_ROTATION && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500" />
                 )}
               </button>
               
               <button
-                onClick={() => setActiveTab("random")}
+                type="button"
+                onClick={() => setActiveTab(TAB_RANDOM)}
                 className={`relative px-6 py-3 font-medium rounded-t-xl transition-all duration-200 ${
-                  activeTab === "random"
-                    ? "bg-white text-blue-600 shadow-sm -mb-px border-t-2 border-x border-blue-500"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-white/50"
+                  activeTab === TAB_RANDOM
+                    ? 'bg-white text-blue-600 shadow-sm -mb-px border-t-2 border-x border-blue-500'
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-white/50'
                 }`}
               >
                 <span className="relative z-10">Random</span>
-                {activeTab === "random" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                {activeTab === TAB_RANDOM && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500" />
                 )}
               </button>
             </div>
@@ -93,9 +101,9 @@ export default function Dashboard() {
           {/* Tab Content with smooth transition */}
           <div className="p-8 bg-gradient-to-br from-gray-50 to-white min-h-96">
             <div className="animate-fadeIn">
-              {activeTab === "basic-advanced" && <BasicAdvancedAugmentation />}
-              {activeTab === "rotation" && <RotationAugmentation />}
-              {activeTab === "random" && <RandomAugmentation />}
+              {activeTab === TAB_BASIC_ADVANCED && <BasicAdvancedAugmentation />}
+              {activeTab === TAB_ROTATION && <RotationAugmentation />}
+              {activeTab === TAB_RANDOM && <RandomAugmentation />}
             </div>
           </div>
         </div>
@@ -108,3 +116,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+export default Dashboard;
