@@ -241,12 +241,7 @@ def basic_augmentation():
 
     except ValueError as val_err:
         return error_response(str(val_err), 400)
-
-    # pylint: disable=broad-exception-caught
-    except Exception as exc:
-        logger.error("Basic augmentation error: %s", exc)
-        return error_response("Unexpected server error.", 500)
-    # pylint: enable=broad-exception-caught
+    
     
 @augmentation_bp.route("/augment/advanced", methods=["POST"])
 @jwt_required()
