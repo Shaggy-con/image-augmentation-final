@@ -1,13 +1,13 @@
 from PIL import Image
 
 
-def basic_rotate(image, angle):
+def _basic_rotate(image, angle):
     
     rotated = image.rotate(angle, expand=True)
     return rotated
 
 
-def scale_image(image, scale_factor):
+def _scale_image(image, scale_factor):
     
     width, height = image.size
     new_width = int(width * scale_factor)
@@ -16,7 +16,7 @@ def scale_image(image, scale_factor):
     return scaled
 
 
-def flip_image(image, direction="horizontal"):
+def _flip_image(image, direction="horizontal"):
     
     if direction == "horizontal":
         flipped = image.transpose(Image.FLIP_LEFT_RIGHT)

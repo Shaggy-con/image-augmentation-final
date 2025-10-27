@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from utils import allowed_file, error_response, validate_image_size
 from controllers.random_generator import _generate_random_augmentation
 from controllers.image_rotator import _rotate_and_zip
-from controllers.basic_aug import basic_rotate, scale_image, flip_image
+from controllers.basic_aug import _basic_rotate, _scale_image, _flip_image
 from controllers.adv_augmentation import _augment_image
 import io
 from PIL import Image
@@ -192,7 +192,7 @@ def basic_augmentation():
                     return error_response(
                         "Angle must be between 0 and 360 degrees.", 400
                     )
-                image = basic_rotate(image, angle)
+                image = _basic_rotate(image, angle)
                 op_names.append("rotate")
 
             elif op_type == "scale":
@@ -201,7 +201,7 @@ def basic_augmentation():
                     return error_response(
                         "Scale factor must be between 0.1 and 2.0.", 400
                     )
-                image = scale_image(image, scale_factor)
+                image = _scale_image(image, scale_factor)
                 op_names.append("scale")
 
             elif op_type == "flip":
@@ -210,7 +210,7 @@ def basic_augmentation():
                     return error_response(
                         "Direction must be 'horizontal' or 'vertical'.", 400
                     )
-                image = flip_image(image, direction)
+                image = _flip_image(image, direction)
                 op_names.append("flip")
 
             else:
