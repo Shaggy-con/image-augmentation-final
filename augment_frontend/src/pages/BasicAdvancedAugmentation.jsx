@@ -1,5 +1,6 @@
 import { useState } from "react";
 import API from "../api";
+import Output from "../components/Output";
 
 export default function BasicAdvancedAugmentation() {
   const [basicImage, setBasicImage] = useState(null);
@@ -11,7 +12,7 @@ export default function BasicAdvancedAugmentation() {
   const [flipDirection, setFlipDirection] = useState("horizontal");
   const [brightness, setBrightness] = useState(1.0);
   const [contrast, setContrast] = useState(1.0);
-  const [saturation, setSaturation] = useState(1.0); // Added for consistency with backend
+  const [saturation, setSaturation] = useState(1.0);
   const [blur, setBlur] = useState(false);
   const [grayscale, setGrayscale] = useState(false);
   const [operation, setOperation] = useState("rotate");
@@ -275,10 +276,11 @@ export default function BasicAdvancedAugmentation() {
       >
         {isLoadingBasic ? "Processing..." : "Generate"}
       </button>
+      <button>
+        This is button
+      </button>
       {basicResultUrl && (
-        <div className="mt-4">
-          <img src={basicResultUrl} alt="Augmented Image" className="max-w-full h-auto" />
-        </div>
+        <Output basicResultUrl={basicResultUrl} />
       )}
     </div>
   );

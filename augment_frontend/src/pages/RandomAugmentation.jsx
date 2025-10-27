@@ -1,5 +1,6 @@
 import { useState } from "react";
 import API from "../api";
+import Output from "../components/Output";
 
 export default function RandomAugmentation() {
   const [randomImage, setRandomImage] = useState(null);
@@ -115,11 +116,7 @@ export default function RandomAugmentation() {
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-purple-400 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
               <div className="relative border-2 border-pink-200 rounded-2xl p-4 bg-white shadow-lg">
-                <img 
-                  src={randomResultUrl} 
-                  alt="Augmented" 
-                  className="rounded-xl shadow-md w-full h-auto max-h-96 object-contain"
-                />
+                <Output imageurl={randomResultUrl} />
               </div>
             </div>
             <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
@@ -149,3 +146,4 @@ export default function RandomAugmentation() {
     </div>
   );
 }
+
