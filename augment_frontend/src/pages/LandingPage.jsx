@@ -1,6 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const LandingPage = () => {
+  const navigate = useNavigate();
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-center">
       <h1 className="text-2xl font-bold mb-8">
@@ -16,7 +18,7 @@ const LandingPage = () => {
       </div>
 
       <button
-        onClick={() => (window.location.href = '/dashboard')}
+        onClick={() => navigate("/dashboard")}
         className="bg-blue-500 text-white py-2 px-6 rounded hover:bg-blue-600 transition"
       >
         Go to Dashboard

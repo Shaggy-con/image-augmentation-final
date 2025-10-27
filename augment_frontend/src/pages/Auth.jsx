@@ -1,7 +1,9 @@
 import { useState } from "react";
 import API from "../api";
+import {useNavigate} from 'react-router-dom';
 
 export default function Auth() {
+  const navigate = useNavigate();
   const [isRegister, setIsRegister] = useState(false);
   const [step, setStep] = useState('credentials'); // 'credentials' | 'otp'
   const [email, setEmail] = useState("");
@@ -75,8 +77,7 @@ export default function Auth() {
         } else {
           const res = await API.post("/login", { email, password });
           localStorage.setItem("token", res.data.access_token);
-          alert("Login successful!");
-          window.location.href = "/dashboard";
+          navigate("/dashboard");
         }
       } catch (err) {
         const errorMsg = err.response?.data?.error || "Something went wrong";
