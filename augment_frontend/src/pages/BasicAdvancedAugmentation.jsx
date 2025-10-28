@@ -5,7 +5,7 @@ import Output from '../components/Output';
 
 // Constants for file validation
 const ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg']; // Supported image formats
-const MAX_FILE_SIZE = 15 * 1024 * 1024; // Maximum file size (15MB)
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // Maximum file size (5MB)
 
 // Constants for basic augmentation parameters
 const MIN_ANGLE = 0;
@@ -77,7 +77,7 @@ function BasicAdvancedAugmentation() {
 
     // Validate file size
     if (basicImage.size > MAX_FILE_SIZE) {
-      alert('File is too large. Maximum size is 15MB.');
+      alert('File is too large. Maximum size is 5MB.');
       return;
     }
 

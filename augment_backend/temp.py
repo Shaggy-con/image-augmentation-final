@@ -50,7 +50,7 @@ except Exception as e:
 
 # Helpers
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-MAX_FILE_SIZE = 15 * 1024 * 1024
+MAX_FILE_SIZE = 5 * 1024 * 1024
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
