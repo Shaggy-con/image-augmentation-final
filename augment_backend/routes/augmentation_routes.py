@@ -1,15 +1,19 @@
+"""Image augmentation routes for various transformation operations."""
+import datetime
+import io
+import logging
+
 from flask import Blueprint, jsonify, request, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from utils import allowed_file, error_response, validate_image_size
-from controllers.random_generator import _generate_random_augmentation
-from controllers.image_rotator import _rotate_and_zip
-from controllers.basic_aug import _basic_rotate, _scale_image, _flip_image
-from controllers.adv_augmentation import _augment_image
-import io
 from PIL import Image
-import logging
+
+from controllers.adv_augmentation import _augment_image
+from controllers.basic_aug import _basic_rotate, _scale_image, _flip_image
+from controllers.image_rotator import _rotate_and_zip
+from controllers.random_generator import _generate_random_augmentation
 from database import get_log_collection
-import datetime
+from utils import allowed_file, error_response, validate_image_size
+
 
 augmentation_bp = Blueprint('augmentation', __name__)
 logger = logging.getLogger(__name__)
@@ -19,32 +23,37 @@ logger = logging.getLogger(__name__)
 @augmentation_bp.route("/augment/random", methods=["POST"])
 @jwt_required()
 def random_augmentation():
+    """Apply random augmentations to an uploaded image.
+    
+    Receives an image file via POST request, applies random augmentations,
+    and returns the augmented image to the frontend.
+    
+    Returns:
+        Response: Augmented image file or error JSON.
     """
-    Receives an image file via POST request
-    Applies random augmentations and returns to frontend
-    """
-    # 1. File validation
+    # File validation
     if "image" not in request.files:
         return jsonify({"error": "no image uploaded"}), 400
         
     image_file = request.files['image']
     
-    # 2. Empty File validation
+    # Empty file validation
     if not image_file or image_file.filename == "":
-        return jsonify({"Error":"No image file is uploaded"}), 400
+        return jsonify({"Error": "No image file is uploaded"}), 400
     
-    # 3. Size validation
-    is_Valid, error_msg = validate_image_size(image_file)
+    # Size validation
+    is_valid, error_msg = validate_image_size(image_file)
     
-    if not is_Valid:
+    if not is_valid:
         return jsonify({"error": error_msg}), 400
     
     user_email = get_jwt_identity()
     logs = get_log_collection()
 
-    
-
-    logging.info(f"RANDOM_AUGMENTATION by user={user_email}, file={image_file.filename}")
+    logging.info(
+        f"RANDOM_AUGMENTATION by user={user_email}, "
+        f"file={image_file.filename}"
+    )
 
     try:
         img_buffer = _generate_random_augmentation(image_file)
@@ -58,7 +67,7 @@ def random_augmentation():
 
         return send_file(
             img_buffer,
-            mimetype='image/png',  
+            mimetype='image/png',
             as_attachment=True,
             download_name='random_augmented_image.png'
         )
@@ -69,24 +78,28 @@ def random_augmentation():
 @augmentation_bp.route("/augment/rotate", methods=["POST"])
 @jwt_required()
 def rotate_batch_image():
-    """
-    Receives an image file and num_images via POST request
-    Applies Batch Processing logic and returns batches of images to frontend
-    """
-    # 1. File validation
-    if "image" not in request.files:
-        return jsonify({"error":"no image uploaded"}) , 400
-        
-    image_file= request.files['image']
+    """Rotate an image multiple times and return as ZIP file.
     
-    # 2. File size validation
+    Receives an image file and num_images via POST request, applies batch
+    processing logic, and returns batches of rotated images to frontend.
+    
+    Returns:
+        Response: ZIP file containing rotated images or error JSON.
+    """
+    # File validation
+    if "image" not in request.files:
+        return jsonify({"error": "no image uploaded"}), 400
+        
+    image_file = request.files['image']
+    
+    # File size validation
     is_valid, error_msg = validate_image_size(image_file)
     
     if not is_valid:
         return jsonify({"error": error_msg}), 400
 
-    # 3. Parameter validation
-    num_images_str = request.form.get('num_images',36)
+    # Parameter validation
+    num_images_str = request.form.get('num_images', 36)
 
     if num_images_str is None:
         num_images = 36
@@ -94,22 +107,26 @@ def rotate_batch_image():
         try:
             num_images = int(num_images_str)
         except ValueError:
-            return jsonify({"error":"num_images must be an integer"}),400
+            return jsonify(
+                {"error": "num_images must be an integer"}
+            ), 400
         
-    # 4. Limits Validation
+    # Limits validation
     MIN_IMAGES = 4
     MAX_IMAGES = 360
 
     if not (MIN_IMAGES <= num_images <= MAX_IMAGES):
-        return jsonify({"error":f"num_images must be between {MIN_IMAGES} and {MAX_IMAGES}"}),400
+        return jsonify({
+            "error": f"num_images must be between {MIN_IMAGES} "
+                     f"and {MAX_IMAGES}"
+        }), 400
     
     user_email = get_jwt_identity()
     logs = get_log_collection()
     
-    # 5. Batch Processing and Error handling 
-
+    # Batch processing and error handling
     try:
-        zip_buffer=_rotate_and_zip(image_file, num_images)
+        zip_buffer = _rotate_and_zip(image_file, num_images)
 
         logs.insert_one({
             "user_email": user_email,
@@ -132,8 +149,12 @@ def rotate_batch_image():
 @augmentation_bp.route("/augment/basic", methods=["POST"])
 @jwt_required()
 def basic_augmentation():
-    """
-    Perform basic image augmentations such as rotate, scale, and flip.
+    """Perform basic image augmentations.
+    
+    Supports rotate, scale, and flip operations on uploaded images.
+    
+    Returns:
+        Response: Augmented image file or error JSON.
     """
     if "image" not in request.files:
         return error_response("No image uploaded", 400)
@@ -246,7 +267,14 @@ def basic_augmentation():
 @augmentation_bp.route("/augment/advanced", methods=["POST"])
 @jwt_required()
 def advanced_augmentation():
-    """Handle advanced image augmentation with multiple operations."""
+    """Handle advanced image augmentation with multiple operations.
+    
+    Supports brightness, contrast, saturation, blur, and grayscale
+    adjustments on uploaded images.
+    
+    Returns:
+        Response: Augmented image file or error JSON.
+    """
     if "image" not in request.files:
         return error_response("No image uploaded", 400)
 
@@ -273,7 +301,7 @@ def advanced_augmentation():
             "grayscale": False,
         }
 
-        # Parse JSON operations (with silent=True to avoid 400 on non-JSON requests)
+        # Parse JSON operations
         json_data = request.get_json(silent=True)
         if json_data and "operations" in json_data:
             operations = json_data["operations"]
@@ -330,7 +358,6 @@ def advanced_augmentation():
                     )
 
         else:
-            # Backward compatibility: single params from form-data
             advanced_params["brightness"] = float(
                 request.form.get("brightness", 1.0)
             )

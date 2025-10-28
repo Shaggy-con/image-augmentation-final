@@ -1,13 +1,17 @@
+"""Flask application configuration."""
+import logging
+
 from flask import Flask
+from flask_bcrypt import Bcrypt
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+from flask_mail import Mail
+
 from config import Config
 from database import init_db
 from routes.auth_routes import auth_bp
 from routes.augmentation_routes import augmentation_bp
-import logging
-from flask_jwt_extended import JWTManager
-from flask_mail import Mail
-from flask_bcrypt import Bcrypt
+
 
 # Load environment variables (dotenv handled in config.py)
 logging.basicConfig(level=logging.INFO)
@@ -17,14 +21,16 @@ mail = Mail()
 jwt = JWTManager()
 bcrypt = Bcrypt()
 
+
 def create_app():
+    """Create and configure the Flask application"""
     app = Flask(__name__)
     app.config.from_object(Config)
 
     # Initialize extensions
     CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
 
-    #Initialize JWT
+    # Initialize JWT
     jwt.init_app(app)
 
     # Initialize database
@@ -41,6 +47,7 @@ def create_app():
     app.register_blueprint(augmentation_bp, url_prefix='/')
 
     return app
+
 
 if __name__ == '__main__':
     app = create_app()

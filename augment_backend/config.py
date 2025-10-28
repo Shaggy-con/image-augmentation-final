@@ -1,23 +1,31 @@
+"""Application configuration settings."""
 import os
-from dotenv import load_dotenv
 from datetime import timedelta
+
+from dotenv import load_dotenv
+
 
 load_dotenv()
 
+
 class Config:
-    #JWT Configuration
-    JWT_SECRET_KEY= os.getenv("JWT_SECRET_KEY")
+    """Flask application configuration class.
+    
+    Loads configuration from environment variables and sets defaults.
+    """
+    
+    # JWT Configuration
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     if not JWT_SECRET_KEY:
         raise ValueError("JWT_SECRET_KEY environment variable not set")
-    JWT_ACCESS_TOKEN_EXPIRES= timedelta(days=1)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=1)
 
-
-    #MongoDB
+    # MongoDB
     MONGO_URI = os.getenv("MONGOURI")
     if not MONGO_URI:
         raise ValueError("MONGOURI environment variable not set")
     
-    # File upload limit
+    # File upload limit (5MB)
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024
 
     # Mail configuration
@@ -28,4 +36,7 @@ class Config:
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
 
     if not MAIL_USERNAME or not MAIL_PASSWORD:
-        raise ValueError("MAIL_USERNAME and MAIL_PASSWORD environment variables must be set")
+        raise ValueError(
+            "MAIL_USERNAME and MAIL_PASSWORD environment variables "
+            "must be set"
+        )

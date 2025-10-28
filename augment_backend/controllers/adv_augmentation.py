@@ -13,21 +13,7 @@ def _augment_image(
     grayscale: bool = False
 ) -> Image.Image:
     """
-    Apply advanced augmentations to a PIL Image (in-memory).
-    
-    Args:
-        image: Source PIL Image
-        brightness: Brightness factor (0.1-3.0, default 1.0)
-        contrast: Contrast factor (0.1-3.0, default 1.0)
-        saturation: Saturation factor (0.1-3.0, default 1.0)
-        blur: Apply blur filter if True
-        grayscale: Convert to grayscale if True
-    
-    Returns:
-        Transformed PIL Image
-    
-    Raises:
-        ValueError: If brightness, contrast, or saturation out of range
+    Apply advanced augmentations to a PIL Image
     """
     if not 0.1 <= brightness <= 3.0:
         raise ValueError("Brightness must be between 0.1 and 3.0")
