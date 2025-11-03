@@ -48,7 +48,7 @@ function Dashboard() {
             <div>
               {/* Dashboard title with gradient effect */}
               <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Dashboard
+                Augmentation Dashboard
               </h2>
             </div>
             {/* Logout button with gradient and hover effects */}
